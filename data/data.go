@@ -2,7 +2,6 @@ package data
 
 import (
 	"github.com/go-chi/jwtauth/v5"
-	"net/http"
 )
 
 type Book struct {
@@ -40,13 +39,5 @@ func Init1() {
 	Creds = map[string]Credential{
 		"suman": {Username: "suman", Password: "pass1"},
 		"hamim": {Username: "hamim", Password: "pass2"},
-	}
-}
-func Pong(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte("Server is running\n"))
-	if err != nil {
-		http.Error(w, "Can not Write Data", http.StatusInternalServerError)
-		return
 	}
 }

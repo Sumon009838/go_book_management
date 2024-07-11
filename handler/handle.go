@@ -137,3 +137,11 @@ func Find_by_genre(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+func Pong(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("Server is running\n"))
+	if err != nil {
+		http.Error(w, "Can not Write Data", http.StatusInternalServerError)
+		return
+	}
+}
