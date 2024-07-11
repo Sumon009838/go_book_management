@@ -14,7 +14,7 @@ import (
 func main() {
 	data.Init1()
 	r := chi.NewRouter()
-	r.Get("/ping", data.Pong)
+	r.Get("/ping", handler.Pong)
 	r.Post("/login", authentication.Login)
 	r.Get("/logout", authentication.Logout)
 	r.Group(func(r chi.Router) {
