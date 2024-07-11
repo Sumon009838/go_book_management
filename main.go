@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/jwtauth/v5"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Book struct {
@@ -19,9 +21,17 @@ type Author struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 }
+type credential struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
 
+var mySigningKey = []byte("secret")
 var Books map[string]Book
 var Authors map[string]Author
+var creds map[string]credential
+
+var tokenAuth *jwtauth.JWTAuth
 
 func getbooks(w http.ResponseWriter, r *http.Request) {
 	var books []Book
@@ -154,31 +164,103 @@ func find_by_genre(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func init1() {
+	tokenAuth = jwtauth.New("HS256", mySigningKey, nil)
 	Books = map[string]Book{
-		"1": {ID: "1", Title: "Movie1", Genre: "Comedy", Author: &Author{ID: "1", FirstName: "Suman", LastName: "Sarker"}},
-		"2": {ID: "2", Title: "Movie2", Genre: "Comedy", Author: &Author{ID: "2", FirstName: "Hamim", LastName: "Hossain"}},
+		"1": {ID: "1", Title: "Movie1", Genre: "comedy", Author: &Author{ID: "1", FirstName: "Suman", LastName: "Sarker"}},
+		"2": {ID: "2", Title: "Movie2", Genre: "comedy", Author: &Author{ID: "2", FirstName: "Hamim", LastName: "Hossain"}},
 	}
 	Authors = map[string]Author{
 		"1": {FirstName: "Suman", LastName: "Sarker"},
 		"2": {FirstName: "Hamim", LastName: "Hossain"},
 	}
+	creds = map[string]credential{
+		"suman": {Username: "suman", Password: "pass1"},
+		"hamim": {Username: "hamim", Password: "pass2"},
+	}
+}
+func login(w http.ResponseWriter, r *http.Request) {
+	var cred credential
+	err := json.NewDecoder(r.Body).Decode(&cred)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	cr, ok := creds[cred.Username]
+	if !ok {
+		http.Error(w, "Username not found", http.StatusNotFound)
+		return
+	}
+	if cr.Password != cred.Password {
+		http.Error(w, "Password mismatch", http.StatusUnauthorized)
+		return
+	}
+	et := time.Now().Add(time.Hour * 24)
+	claims := map[string]interface{}{
+		"username": "suman",
+		"exp":      et.Unix(),
+	}
+	_, tokenString, err := tokenAuth.Encode(claims)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:    "jwt",
+		Value:   tokenString,
+		Expires: et,
+	})
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write([]byte("Successfully Logged In"))
+	if err != nil {
+		http.Error(w, "Can not Write Data", http.StatusInternalServerError)
+		return
+	}
+}
+func logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:    "jwt",
+		Expires: time.Now(),
+	})
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("Successfully Logged Out"))
+	if err != nil {
+		http.Error(w, "Can not Write Data", http.StatusInternalServerError)
+		return
+	}
+}
+func pong(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("Server is running\n"))
+	if err != nil {
+		http.Error(w, "Can not Write Data", http.StatusInternalServerError)
+		return
+	}
 }
 func main() {
 	init1()
 	r := chi.NewRouter()
+	r.Get("/ping", pong)
+	r.Post("/login", login)
+	r.Get("/logout", logout)
 	r.Group(func(r chi.Router) {
 		r.Route("/books", func(r chi.Router) {
 			r.Get("/", getbooks)
 			r.Get("/{id}", getbook)
-			r.Post("/", addbook)
-			r.Put("/{id}", updatebook)
-			r.Delete("/{id}", deletebook)
+			r.Group(func(r chi.Router) {
+				r.Use(jwtauth.Verifier(tokenAuth))
+				r.Use(jwtauth.Authenticator(tokenAuth))
+				r.Post("/", addbook)
+				r.Put("/{id}", updatebook)
+				r.Delete("/{id}", deletebook)
+			})
 		})
 		r.Route("/authors", func(r chi.Router) {
 			r.Get("/", getauthors)
 			r.Get("/{id}", getauthor)
 		})
-		r.Get("/find/{genre}", find_by_genre)
+		r.Route("/find", func(r chi.Router) {
+			r.Get("/{genre}", find_by_genre)
+		})
 	})
 	fmt.Println("Listening and Serving to 8000")
 	err := http.ListenAndServe("localhost:8000", r)
