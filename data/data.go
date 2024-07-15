@@ -16,8 +16,8 @@ type Author struct {
 	LastName  string `json:"last_name"`
 }
 type Credential struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string
+	Password string
 }
 
 var mySigningKey = []byte("secret")
@@ -35,9 +35,5 @@ func Init1() {
 	Authors = map[string]Author{
 		"1": {FirstName: "Suman", LastName: "Sarker"},
 		"2": {FirstName: "Hamim", LastName: "Hossain"},
-	}
-	Creds = map[string]Credential{
-		"suman": {Username: "suman", Password: "pass1"},
-		"hamim": {Username: "hamim", Password: "pass2"},
 	}
 }
