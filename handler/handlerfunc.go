@@ -36,7 +36,8 @@ func Allfunc(address string) {
 		})
 	})
 	fmt.Println("Listening and Serving to ", address)
-	err := http.ListenAndServe("localhost:"+address, r)
+	fmt.Println(":" + address)
+	err := http.ListenAndServe(":"+address, r)
 	if err != nil {
 		log.Fatalln(err)
 		return
