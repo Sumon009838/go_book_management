@@ -1,8 +1,6 @@
 FROM golang:latest as builder
 
 
-LABEL maintainer="Rajeev Singh <rajeevhub@gmail.com>"
-
 
 WORKDIR /app
 
