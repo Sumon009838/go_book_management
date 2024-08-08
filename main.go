@@ -38,7 +38,7 @@ func main() {
 		})
 	})
 	fmt.Println("Listening and Serving to 8000")
-	err := http.ListenAndServe("localhost:8000", r)
+	err := http.ListenAndServe(":8000", r)
 	if err != nil {
 		log.Fatalln(err)
 		return

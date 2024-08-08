@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: bookapi
+  name: bookserverdeployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bookapi
+  template:
+    metadata:
+      labels:
+        app: bookapi
+    spec:
+      containers:
+        - image: sumon124816/k8s:new
+          name: bookapi
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookservice
+spec:
+  type: NodePort
+  selector:
+    app: bookapi
+  ports:
+    - protocol: TCP
+      port: 3200
+      nodePort: 30001
+      targetPort: 8000
